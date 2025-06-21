@@ -1,0 +1,80 @@
+import asyncio
+import os
+
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, PruningContentFilter, LLMContentFilter, LLMConfig
+from playwright.async_api import async_playwright
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
+
+OUTPUT_PATH = "out"
+"""输出路径"""
+BROWSER_CONFIG = BrowserConfig(
+    verbose=True,  # 显示进度详情
+)
+"""
+浏览器配置参数
+    content_filter 内容过滤器
+        BM25ContentFilter 关键词过滤器
+        PruningContentFilter 内容精简过滤器
+        LLMContentFilter 大语言模型过滤器
+    options 选项
+        ignore_links 是否移除所有超链接
+        ignore_images 是否移除所有图片引用
+"""
+CRAWLER_RUN_CONFIG = CrawlerRunConfig(
+    cache_mode=CacheMode.DISABLED,  # 禁用缓存
+    markdown_generator=DefaultMarkdownGenerator(
+        # content_filter=PruningContentFilter(
+        #     threshold=0.76,  # 阈值(范围0-1，越小越严格)
+        #     threshold_type="dynamic"  # 动态阈值
+        # ),
+        content_filter=LLMContentFilter(
+            llm_config=LLMConfig(
+                base_url="http://zlby-ai:11434",  # 模型服务地址
+                provider="ollama/qwen3",  # 模型
+            )
+        ),
+        options={
+            "ignore_links": True,
+            "ignore_images": True,
+        }
+    ),
+)
+"""爬虫运行配置参数"""
+
+
+async def test_browser():
+    """测试浏览器"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        await page.goto("https://www.baidu.com")
+        print(f'Title: {await page.title()}')
+        await page.screenshot(path=os.path.join(OUTPUT_PATH, "baidu.png"))
+        await browser.close()
+
+
+async def start_crawl():
+    """开始异步抓取网页内容"""
+    async with AsyncWebCrawler(config=BROWSER_CONFIG) as crawler:
+        """
+        创建爬虫对象，自动管理资源(确保爬虫使用完后会自动关闭，释放资源)
+        """
+        result = await crawler.arun(
+            url="https://www.anthropic.com/news/agent-capabilities-api",
+            config=CRAWLER_RUN_CONFIG
+        )
+
+        # 输出抓取结果
+        write_file('main.md', result.markdown.fit_markdown)
+
+
+def write_file(file_name, content):
+    """输出文件"""
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
+    with open(os.path.join(OUTPUT_PATH, file_name), "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+if __name__ == '__main__':
+    # asyncio.run(test_browser())
+    asyncio.run(start_crawl())
