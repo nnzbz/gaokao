@@ -1,5 +1,5 @@
 import os
-from logging import info, basicConfig, error
+from logging import info, error
 
 from dotenv import load_dotenv
 
@@ -17,7 +17,6 @@ def main():
     LoggingUtils.init()
     info("程序开始运行...")
     try:
-        # 开始同步爬取数据
         crawler = Crawler(is_trace=True, output_path=output_path)
         crawler.sync_crawl()
     except KeyboardInterrupt:
