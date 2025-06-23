@@ -46,8 +46,8 @@ class Crawler:
         try:
             # 打开页面
             page = context.new_page()
-            # page.goto("https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-index,lb-1.dhtml")
-            page.goto("https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-index,ssdm-,yxls-,xlcc-,zgsx-,yxjbz-,start-2900.dhtml")
+            page.goto("https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-index,lb-1.dhtml")
+            # page.goto("https://gaokao.chsi.com.cn/zsgs/zhangcheng/listVerifedZszc--method-index,ssdm-,yxls-,xlcc-,zgsx-,yxjbz-,start-2900.dhtml")
             page.wait_for_selector(".sch-list-container")
             info(f'标题: {page.title()}')
 
@@ -69,10 +69,17 @@ class Crawler:
             p.stop()
 
     def loop_zszc(self, context, page):
+        """遍历学校"""
         zch_item_list = page.locator(".sch-list-container .sch-item").all()
         for zszc_item in zch_item_list:
             college_name = zszc_item.locator(".name").inner_text().strip()
             """学校名称"""
+            # 获取城市、主管部门
+            city, dept = zszc_item.locator(".sch-department").inner_text().strip().split('|')
+            city = city.split('\n').index(2)
+            dept = dept.split('\n').index(2)
+            # 获取学校办学层次(本科、高职(专科))、建设工程(985/211/双一流)
+            sch_level, project = zszc_item.locator(".sch-level").inner_text().strip().split('|')
             # 判断是否有数据
             if zszc_item.locator(".no-info").count() > 0:
                 warn(f"警告: {college_name}没有招生章程的页面")

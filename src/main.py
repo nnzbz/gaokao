@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from src.crawler import Crawler
 from src.utils.logging_utils import LoggingUtils
+from src.utils.neo4j_utils import Neo4jUtils
 
 
 def main():
@@ -16,6 +17,7 @@ def main():
     # 初始化 logging
     LoggingUtils.init(output_path)
     info("程序开始运行...")
+    neo4j_utils = Neo4jUtils()
     try:
         crawler = Crawler(is_trace=True, output_path=output_path)
         crawler.sync_crawl()
@@ -24,6 +26,7 @@ def main():
     except Exception as e:
         error(e)
     finally:
+        neo4j_utils.close()
         info("程序结束运行")
 
 
