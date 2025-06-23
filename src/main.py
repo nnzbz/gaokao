@@ -11,10 +11,10 @@ def main():
     # 加载 .env 文件
     load_dotenv()  # 默认加载当前目录下的 .env 文件
 
-    output_path = os.getenv("output_path", "./out")
+    output_path = os.getenv("output_path") or "out"
 
     # 初始化 logging
-    LoggingUtils.init()
+    LoggingUtils.init(output_path)
     info("程序开始运行...")
     try:
         crawler = Crawler(is_trace=True, output_path=output_path)
