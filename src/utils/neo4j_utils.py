@@ -1,8 +1,8 @@
 import os
-from logging import info
-from typing import LiteralString, cast
+from logging import info, warning, debug
+from typing import LiteralString
 
-from neo4j import GraphDatabase, Driver, Query
+from neo4j import GraphDatabase, Driver
 
 
 class Neo4jUtils:
@@ -29,8 +29,7 @@ class Neo4jUtils:
         info("验证Neo4j数据库连接...")
         records = self.driver.execute_query("MATCH (n) RETURN COUNT(n) AS count").records
         info(f"数据库中实体数量: {records[0].data()['count']}")
-        self.create_node_and_relationship("张三", "Person", "李四", "Person", "KNOWS")
-        pass
+        # self.create_node_and_relationship("张三", "Person", "李四", "Person", "KNOWS")
 
     def close(self):
         """关闭连接"""
@@ -46,8 +45,31 @@ class Neo4jUtils:
         :param label2: 节点2的标签
         :param relationship: 关系
         """
-        self.driver.execute_query(f"""
+        ids = self.driver.execute_query(f"""
             MERGE (n1:{label1} {{name: $name1}})
             MERGE (n2:{label2} {{name: $name2}})
             MERGE (n1)-[r:{relationship}]->(n2)
-        """, {"name1": name1, "label1": label1, "name2": name2, "label2": label2})
+            RETURN elementId(n1) as id1, elementId(n2) as id2 
+            """, {"name1": name1, "label1": label1, "name2": name2, "label2": label2}).records[0]
+        id1 = ids.data()["id1"]
+        id2 = ids.data()["id2"]
+        return id1, id2
+
+    def add_property_to_node_by_id(self, node_id: str, property_name: LiteralString, property_value):
+        """
+        为指定 ID 的节点添加属性
+        :param node_id: 节点 ID
+        :param property_name: 属性名
+        :param property_value: 属性值
+        """
+        records = self.driver.execute_query(f"""
+            MATCH (n)
+            WHERE elementId(n) = $node_id
+            SET n.{property_name} = $value
+            RETURN count(n) as updated_count
+            """, node_id=node_id, value=property_value).records
+
+        if len(records) == 1:
+            debug(f"已为节点 ID {node_id} 添加了属性 {property_name}")
+        else:
+            warning(f"未找到节点 ID {node_id}")

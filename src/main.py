@@ -19,12 +19,13 @@ def main():
     info("程序开始运行...")
     neo4j_utils = Neo4jUtils()
     try:
-        crawler = Crawler(is_trace=True, output_path=output_path)
+        crawler = Crawler(is_trace=True, output_path=output_path, neo4j_utils=neo4j_utils)
         crawler.sync_crawl()
     except KeyboardInterrupt:
         info("用户中断程序的执行")
     except Exception as e:
         error(e)
+        print(e)
     finally:
         neo4j_utils.close()
         info("程序结束运行")
